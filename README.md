@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/advanced-rest-client/raml-main-entry-lookup.svg?branch=master)](https://travis-ci.org/advanced-rest-client/raml-main-entry-lookup)  
+
+# raml-main-entry-lookup
 
 The `<raml-main-entry-lookup>` is an element that lookup for a main RAML file
 in the web filesystem structure.
