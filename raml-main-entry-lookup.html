@@ -77,12 +77,23 @@ Polymer({
   },
 
   observers: [
-    'lookup(files.*)'
+    '_filesChanged(files.*)'
   ],
+
+  _filesChanged: function(record) {
+    if (!record || !record.base) {
+      return;
+    }
+    this.async(function() {
+      this.lookup();
+    }, 1);
+  },
+
   // Lookup for main RAML file.
   lookup: function() {
     var entries = this.files;
     if (!entries) {
+      console.warn('Expected files to be set.');
       return;
     }
     if (entries.length === 1 && entries[0].isDirectory) {
@@ -111,7 +122,7 @@ Polymer({
           };
           candidates.push(obj);
         }
-      } else if (entry.isDirectory) {
+      } else if (entry.isDirectory || entry instanceof FileList) {
         promises.push(this.getDirectoryCandidates(entry));
       }
     }
@@ -144,11 +155,14 @@ Polymer({
       }
       this.fire('entry', {entry: candidates});
       return candidates;
-    }.bind(this));
+    }.bind(this))
+    .catch(function(e) {
+      console.error(e);
+    });
   },
 
   getDirectoryCandidates: function(entry) {
-    if (entry.isDirectory) {
+    if (entry.isDirectory || entry instanceof FileList) {
       var context = this;
       return new Promise(function(resolve, reject) {
         var reader = entry.createReader();
@@ -156,7 +170,8 @@ Polymer({
         var readEntries = function() {
           reader.readEntries(function(results) {
             if (!results.length) {
-              Promise.all(all).then(function(candidates) {
+              Promise.all(all)
+              .then(function(candidates) {
                 candidates = candidates.filter(function(item) {
                   return !!item;
                 });
