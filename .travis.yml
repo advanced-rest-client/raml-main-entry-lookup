@@ -1,18 +1,21 @@
 language: node_js
 sudo: required
-before_script:
-- npm install -g bower polylint web-component-tester
-- bower install
-- polylint
-node_js: stable
-addons:
-  firefox: '46.0'
-  apt:
-    sources:
-    - google-chrome
-    packages:
-    - google-chrome-stable
-  sauce_connect: true
-script:
-- xvfb-run wct
 dist: trusty
+node_js: stable
+before_script:
+- npm install --silent bower polymer-cli
+- node_modules/.bin/bower install --silent
+addons:
+  sauce_connect: false
+script:
+- npm run lint
+cache:
+  directories:
+  - bower_components
+  - node_modules
+branches:
+  only:
+    - stage
+    - develop
+after_success:
+  - node tasks/ci.js
