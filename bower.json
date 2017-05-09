@@ -15,7 +15,8 @@
     "url": "git@github.com:advanced-rest-client/raml-main-entry-lookup.git"
   },
   "dependencies": {
-    "polymer": "Polymer/polymer#^1.0.0"
+    "polymer": "Polymer/polymer#^1.0.0",
+    "arc-polyfills": "advanced-rest-client/arc-polyfills#^0.1.1"
   },
   "devDependencies": {
     "iron-component-page": "polymerelements/iron-component-page#1.0.0",
@@ -35,5 +36,5 @@
     "test",
     "tasks"
   ],
-  "version": "1.0.2"
+  "version": "1.0.3"
 }
