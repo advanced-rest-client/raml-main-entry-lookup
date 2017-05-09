@@ -1,6 +1,6 @@
 {
   "name": "raml-main-entry-lookup",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "LICENSE.md",
   "description": "An element that lookup for a main RAML file in the web filesystem structure",
   "devDependencies": {

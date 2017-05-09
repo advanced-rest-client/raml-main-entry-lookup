@@ -1,21 +1,19 @@
-[![Build Status](https://travis-ci.org/advanced-rest-client/raml-main-entry-lookup.svg?branch=master)](https://travis-ci.org/advanced-rest-client/raml-main-entry-lookup)  
+[![Build Status](https://travis-ci.org/advanced-rest-client/raml-main-entry-lookup.svg?branch=stage)](https://travis-ci.org/advanced-rest-client/raml-main-entry-lookup)  
 
 # raml-main-entry-lookup
 
 The `<raml-main-entry-lookup>` is an element that lookup for a main RAML file
-in the web filesystem structure.
-It is a helper for RAML parser to indetify the main RAML file.
+in the list of passed files.
 
-It is looking for a signle RAML file in the highest directory in the structure
-and moving down to subdirectories looking for other RAML files.
-The file that is lokated on top ove the directory structure wins.
-If the element find more than one file all of them will be returned and the program
-should ask the user to choose an entry that is the main file.
+List of files should be either result of reading multiple files from file imput or result
+of use of the `web-unzip` element.
+
+Directories from the file input will be ignored due the missing API to read it's contents.
 
 ### Example
 ```html
 <raml-main-entry-lookup
-  files="[[webFileSystem]]"
+  files="[[files]]"
   entry="{{ramlEntry}}"
   on-entry="_entryPointFound"></raml-main-entry-lookup>
 ```
@@ -32,7 +30,6 @@ this._entryPointFound: function(e) {
   }
 }
 ```
-Tou can pass a single file as the `files` attribute or the web filesystem structure.
 
 
 
