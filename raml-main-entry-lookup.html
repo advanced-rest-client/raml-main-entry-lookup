@@ -14,19 +14,17 @@ the License.
 <link rel="import" href="../polymer/polymer.html">
 <!--
 The `<raml-main-entry-lookup>` is an element that lookup for a main RAML file
-in the web filesystem structure.
-It is a helper for RAML parser to indetify the main RAML file.
+in the list of passed files.
 
-It is looking for a signle RAML file in the highest directory in the structure
-and moving down to subdirectories looking for other RAML files.
-The file that is lokated on top ove the directory structure wins.
-If the element find more than one file all of them will be returned and the program
-should ask the user to choose an entry that is the main file.
+List of files should be either result of reading multiple files from file imput or result
+of use of the `web-unzip` element.
+
+Directories from the file input will be ignored due the missing API to read it's contents.
 
 ### Example
 ```html
 <raml-main-entry-lookup
-  files="[[webFileSystem]]"
+  files="[[files]]"
   entry="{{ramlEntry}}"
   on-entry="_entryPointFound"></raml-main-entry-lookup>
 ```
@@ -43,7 +41,6 @@ this._entryPointFound: function(e) {
   }
 }
 ```
-Tou can pass a single file as the `files` attribute or the web filesystem structure.
 
 @group RAML Elements
 @element raml-main-entry-lookup
@@ -67,7 +64,7 @@ Polymer({
       },
       readOnly: true
     },
-    // Array of File, FileEntry or DirectoryEntry on which perform the search.
+    // Array of File, or zip.js Entry objects
     files: Array,
     // Found entry. If this is an array more than one candidate was found.
     entry: {
@@ -77,142 +74,69 @@ Polymer({
   },
 
   observers: [
-    '_filesChanged(files.*)'
+    '_filesChanged(files)'
   ],
 
-  _filesChanged: function(record) {
-    if (!record || !record.base) {
+  _filesChanged: function() {
+    if (!this.files) {
       return;
     }
     this.async(function() {
-      this.lookup();
+      this.lookup(this.files);
     }, 1);
   },
 
-  // Lookup for main RAML file.
-  lookup: function() {
-    var entries = this.files;
+  /**
+   * Lookup for main RAML file in a set of files.
+   *
+   * @param {Array} entries List of files. It can be either FileList or Array from the `web-unzip`
+   *
+   */
+  lookup: function(entries) {
     if (!entries) {
-      console.warn('Expected files to be set.');
+      return Promise.reject(new Error('Entries not set'));
+    }
+
+    if (!(entries instanceof Array) && !(entries instanceof FileList)) {
+      this.fire('entry', {entry: entries});
       return;
     }
-    if (entries.length === 1 && entries[0].isDirectory) {
-      this._directoryRoot = entries[0].fullPath;
-    }
-    if (!(entries instanceof Array)) {
-      entries = [entries];
+
+    if (entries.length === 1) {
+      this.fire('entry', {entry: entries[0]});
+      return;
     }
 
     var candidates = [];
-    var promises = [];
-
     for (var i = 0; i < entries.length; i++) {
       var entry = entries[i];
-      if (entry.isFile || entry instanceof File) {
-        var name = entry.name;
-        if (name.substr(name.lastIndexOf('.') + 1) === 'raml') {
-          var path = entry.fullPath;
-          if (!path) {
-            path = '/' + name;
-          }
-          var obj = {
-            name: name,
-            entry: entry,
-            path: path.substr(0, path.lastIndexOf(name))
-          };
-          candidates.push(obj);
-        }
-      } else if (entry.isDirectory || entry instanceof FileList) {
-        promises.push(this.getDirectoryCandidates(entry));
-      }
-    }
-
-    return Promise.all(promises)
-    .then(function(_candidates) {
-      candidates = candidates.concat(_candidates);
-      candidates = candidates.filter(function(item) {
-        return !!item;
-      });
-      var list = [];
-      candidates.forEach(function(item) {
-        if (item instanceof Array) {
-          list = list.concat(item);
-        } else {
-          list.push(item);
-        }
-      });
-      candidates = list;
-      if (candidates.length === 1) {
-        candidates = candidates[0];
-      } else if (candidates.length === 0) {
-        candidates = null;
-      }
-      return candidates;
-    })
-    .then(function(candidates) {
-      if (candidates && candidates instanceof Array) {
-        candidates = this.processResults(candidates);
-      }
-      this.fire('entry', {entry: candidates});
-      return candidates;
-    }.bind(this))
-    .catch(function(e) {
-      console.error(e);
-    });
-  },
-
-  getDirectoryCandidates: function(entry) {
-    if (entry.isDirectory || entry instanceof FileList) {
-      var context = this;
-      return new Promise(function(resolve, reject) {
-        var reader = entry.createReader();
-        var all = [];
-        var readEntries = function() {
-          reader.readEntries(function(results) {
-            if (!results.length) {
-              Promise.all(all)
-              .then(function(candidates) {
-                candidates = candidates.filter(function(item) {
-                  return !!item;
-                });
-                if (candidates.length === 0) {
-                  candidates = null;
-                } else {
-                  var list = [];
-                  candidates.forEach(function(item) {
-                    if (item instanceof Array) {
-                      list = list.concat(item);
-                    } else {
-                      list.push(item);
-                    }
-                  });
-                  candidates = list;
-                }
-                resolve(candidates);
-              });
-            } else {
-              for (var i = 0; i < results.length; i++) {
-                all.push(context.getDirectoryCandidates(results[i]));
-              }
-              readEntries();
-            }
-          }, reject);
-        };
-        readEntries();
-      });
-    } else if (entry.isFile) {
       var name = entry.name;
       if (name.substr(name.lastIndexOf('.') + 1) === 'raml') {
-        var path = entry.fullPath;
-        return Promise.resolve({
+        var path = entry.filename || entry.name;
+        if (!path) {
+          path = '/' + name;
+        }
+        var obj = {
           name: name,
           entry: entry,
-          path: path.substr(0, path.lastIndexOf(name))
-        });
+          path: entry.filename ? entry.filename.substr(0, entry.filename.lastIndexOf(name)) : '/'
+        };
+        candidates.push(obj);
       }
     }
-    return Promise.resolve(null);
+
+    if (candidates.length === 1) {
+      candidates = candidates[0];
+    } else if (candidates.length === 0) {
+      candidates = null;
+    } else {
+      candidates = this.processResults(candidates);
+    }
+    this.set('entry', candidates);
+    this.fire('entry', {entry: candidates});
+    return candidates;
   },
+
   /**
    * Lookup for a RAML files that are put on top of the directory structure.
    * @param {Array<File>} candidates A list of RAML files in the structure.

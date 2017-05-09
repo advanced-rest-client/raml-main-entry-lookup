@@ -35,5 +35,8 @@
     "test",
     "tasks"
   ],
-  "version": "1.0.2"
+  "version": "1.0.2",
+  "resolutions": {
+    "promise-polyfill": "^1.0.0"
+  }
 }
